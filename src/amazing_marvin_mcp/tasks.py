@@ -1,5 +1,6 @@
 """Task management functions for Amazing Marvin MCP."""
 
+import itertools
 import logging
 from datetime import datetime
 from typing import Any
@@ -123,3 +124,144 @@ def quick_daily_planning(api_client: MarvinAPIClient) -> dict[str, Any]:
         "today_items": today_items[:5],  # Show first 5 scheduled items
         "quick_summary": f"{total_due} due, {total_scheduled} scheduled",
     }
+
+
+def _get_all_children_recursive(
+    api_client: MarvinAPIClient, parent_id: str, visited: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """Recursively get all children of a parent item, avoiding infinite loops."""
+    if visited is None:
+        visited = set()
+
+    if parent_id in visited:
+        logger.warning("Circular reference detected for parent_id %s", parent_id)
+        return []
+
+    visited.add(parent_id)
+
+    try:
+        direct_children = api_client.get_children(parent_id)
+        all_children = list(direct_children)  # Copy the list
+
+        # Recursively get children of each child
+        for child in direct_children:
+            child_id = child.get("_id")
+            if child_id:
+                grandchildren = _get_all_children_recursive(
+                    api_client, child_id, visited.copy()
+                )
+                all_children.extend(grandchildren)
+
+    except Exception as e:
+        logger.warning("Failed to get children for parent_id %s: %s", parent_id, e)
+        return []
+    else:
+        return all_children
+
+
+def get_child_tasks_recursive(
+    api_client: MarvinAPIClient, parent_id: str
+) -> dict[str, Any]:
+    """Get child tasks recursively with comprehensive information."""
+    all_children = _get_all_children_recursive(api_client, parent_id)
+
+    # Categorize children by type
+    tasks = [item for item in all_children if item.get("type") != "project"]
+    projects = [item for item in all_children if item.get("type") == "project"]
+
+    return {
+        "parent_id": parent_id,
+        "total_children": len(all_children),
+        "tasks": tasks,
+        "projects": projects,
+        "task_count": len(tasks),
+        "project_count": len(projects),
+        "all_children": all_children,
+        "recursive": True,
+    }
+
+
+def get_all_nested_items(
+    items: list[dict[str, Any]], api_client: MarvinAPIClient
+) -> list[dict[str, Any]]:
+    all_items: list[dict[str, Any]] = []
+    item_ids = set()
+
+    for item in items:
+        item_id = item.get("_id")
+        if item_id and item_id not in item_ids:
+            all_items.append(item)
+            item_ids.add(item_id)
+
+    # For each project/category, recursively get all children
+    for item in list(all_items):  # Create a copy to avoid modifying while iterating
+        item_id = item.get("_id")
+        item_type = item.get("type")
+        if not item_id or (item_type not in ["project", "category"]):
+            continue
+        children = _get_all_children_recursive(api_client, item_id)
+        for child in children:
+            child_id = child.get("_id")
+            if child_id and child_id not in item_ids:
+                all_items.append(child)
+                item_ids.add(child_id)
+    return all_items
+
+
+def get_all_tasks_impl(
+    api_client: MarvinAPIClient, label: str | None = None
+) -> dict[str, Any]:
+    """Get all tasks and projects with optional label filtering, using recursive traversal."""
+    try:
+        # Get all top-level items
+        today_items = api_client.get_tasks()
+        due_items = api_client.get_due_items()
+        projects = api_client.get_projects()
+        categories = api_client.get_categories()
+
+        all_items = get_all_nested_items(
+            list(itertools.chain(*[today_items, due_items, projects, categories])),
+            api_client=api_client,
+        )
+
+        # Filter by label if specified
+        if label:
+            # Get all labels to understand the label structure
+            labels = api_client.get_labels()
+
+            # Find the label ID
+            label_id = None
+            for lbl in labels:
+                if lbl.get("title", "").lower() == label.lower():
+                    label_id = lbl.get("_id")
+                    break
+
+            if label_id:
+                filtered_items = []
+                for item in all_items:
+                    item_labels = item.get("labelIds", [])
+                    if label_id in item_labels:
+                        filtered_items.append(item)
+                all_items = filtered_items
+            else:
+                # If label not found, return empty results
+                all_items = []
+
+        # Filter to only tasks (not projects or categories)
+        tasks = [
+            item
+            for item in all_items
+            if item.get("type") not in ["project", "category"]
+        ]
+
+        return {
+            "tasks": tasks,
+            "task_count": len(tasks),
+            "filter_applied": label is not None,
+            "label_filter": label,
+            "source": "Recursive traversal of all items",
+        }
+
+    except Exception as e:
+        logger.exception("Failed to get all tasks")
+        return {"error": str(e), "tasks": [], "task_count": 0}

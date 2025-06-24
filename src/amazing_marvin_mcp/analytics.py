@@ -250,6 +250,101 @@ def _process_date_data(
         range_summary["tasks_by_date"][date_str] = []
 
 
+def get_daily_productivity_overview(api_client: MarvinAPIClient) -> dict[str, Any]:
+    """Get comprehensive daily productivity overview combining focus, planning, and progress.
+
+    Consolidates functionality from get_productivity_summary, quick_daily_planning, and get_daily_focus
+    to reduce API calls from 11 to 5 for better performance.
+
+    Returns today's tasks, overdue items, completed items, planning insights, and productivity metrics.
+    """
+    today = DateUtils.get_today()
+
+    # Make efficient API calls (5 total instead of 11)
+    today_items = api_client.get_tasks()  # Today's scheduled items
+    due_items = api_client.get_due_items()  # Overdue/due items
+    today_completed = api_client.get_done_items()  # Today's completed items
+    projects = api_client.get_projects()  # For project context
+    goals = api_client.get_goals()  # For goal progress
+
+    # Combine pending items (removing duplicates)
+    all_pending_items = []
+    item_ids = set()
+
+    for item in today_items + due_items:
+        item_id = item.get("_id")
+        if item_id and item_id not in item_ids:
+            all_pending_items.append(item)
+            item_ids.add(item_id)
+
+    # Categorize pending items
+    high_priority = [
+        item for item in all_pending_items if item.get("priority") == "high"
+    ]
+    pending_projects = [
+        item for item in all_pending_items if item.get("type") == "project"
+    ]
+    pending_tasks = [
+        item for item in all_pending_items if item.get("type") != "project"
+    ]
+
+    # Calculate metrics
+    total_due = len(due_items)
+    total_scheduled = len(today_items)
+    total_completed = len(today_completed)
+    total_pending = len(all_pending_items)
+
+    # Generate planning suggestions
+    heavy_day_threshold = 5
+    suggestions = []
+    if total_due > 0:
+        suggestions.append(f"Focus on {total_due} overdue items first")
+    if total_scheduled > heavy_day_threshold:
+        suggestions.append("Consider rescheduling some tasks - you have a heavy day")
+    if total_scheduled == 0 and total_due == 0:
+        suggestions.append("Great! No urgent tasks today - time to work on your goals")
+    if total_completed > 0:
+        suggestions.append(
+            f"Good progress! You've completed {total_completed} items today"
+        )
+
+    # Productivity insights
+    productivity_note = (
+        f"You've completed {total_completed} items today!"
+        if total_completed > 0
+        else "No completed items yet today - keep going!"
+    )
+
+    return {
+        # Date and overview
+        "date": today,
+        "total_focus_items": total_pending + total_completed,
+        # Task breakdown
+        "pending_items": total_pending,
+        "completed_today": total_completed,
+        "overdue_items": total_due,
+        "scheduled_today": total_scheduled,
+        # Detailed task lists
+        "tasks": pending_tasks,
+        "projects": pending_projects,
+        "high_priority_items": high_priority,
+        "completed_items": today_completed,
+        "due_items": due_items[:5],  # Show first 5 due items
+        "today_items": today_items[:5],  # Show first 5 scheduled items
+        "all_pending_items": all_pending_items,
+        # Context and insights
+        "active_projects": len(projects),
+        "active_goals": len(goals),
+        "goals": goals,
+        "suggestions": suggestions,
+        "productivity_note": productivity_note,
+        "quick_summary": f"{total_due} due, {total_scheduled} scheduled, {total_completed} completed",
+        # Efficiency metrics
+        "api_calls_made": 5,
+        "efficiency_note": "Consolidated view using 5 API calls instead of 11 separate calls",
+    }
+
+
 def _calculate_statistics(range_summary: dict[str, Any]) -> None:
     """Calculate statistics from collected data and update range_summary."""
     if range_summary["daily_breakdown"]:
