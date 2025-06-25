@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 from typing import Any
 
 from fastmcp import FastMCP
@@ -810,8 +811,6 @@ async def get_productivity_summary_for_time_range(
         # Estimate API calls based on date range
         estimated_days = days or 7
         if start_date and end_date:
-            from datetime import datetime
-
             start = datetime.strptime(start_date, "%Y-%m-%d")
             end = datetime.strptime(end_date, "%Y-%m-%d")
             estimated_days = (end - start).days + 1

@@ -28,7 +28,7 @@ jobs:
 
     - name: Run linting
       run: |
-        ruff check src/
+        ruff check src/ --config=pyproject.toml
 
     - name: Run type checking
       run: |
