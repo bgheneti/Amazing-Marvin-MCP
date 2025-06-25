@@ -4,15 +4,21 @@ from datetime import datetime
 
 import pytest
 import requests
-
-from amazing_marvin_mcp.api import MarvinAPIClient
+from amazing_marvin_mcp.analytics import get_productivity_summary
+from amazing_marvin_mcp.api import MarvinAPIClient, create_api_client
 from amazing_marvin_mcp.config import get_settings
+from amazing_marvin_mcp.projects import create_project_with_tasks
+from amazing_marvin_mcp.tasks import (
+    batch_create_tasks,
+    get_daily_focus,
+    quick_daily_planning,
+)
 
 # Constants for tests
 TASK_COUNT = 3  # Number of tasks to create in tests
 
 
-@pytest.fixture
+@pytest.fixture()
 def api_client():
     """Create API client for testing."""
     try:
@@ -24,7 +30,7 @@ def api_client():
         pytest.skip("Configuration error - cannot create API client")
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_project_data():
     """Test project data."""
     return {
@@ -33,7 +39,7 @@ def test_project_data():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_task_data():
     """Test task data."""
     return {
@@ -223,8 +229,6 @@ class TestProjectPlanningEnhancements:
 
     def test_create_project_with_tasks(self, test_project_data):
         """Test creating a project with multiple tasks at once."""
-        from amazing_marvin_mcp.api import create_api_client
-        from amazing_marvin_mcp.projects import create_project_with_tasks
 
         # Use test data
         api_client = create_api_client()
@@ -241,8 +245,6 @@ class TestProjectPlanningEnhancements:
 
     def test_get_daily_focus(self):
         """Test getting daily focus items."""
-        from amazing_marvin_mcp.api import create_api_client
-        from amazing_marvin_mcp.tasks import get_daily_focus
 
         api_client = create_api_client()
         result = get_daily_focus(api_client)
@@ -256,8 +258,6 @@ class TestProjectPlanningEnhancements:
 
     def test_get_productivity_summary(self):
         """Test getting productivity summary."""
-        from amazing_marvin_mcp.analytics import get_productivity_summary
-        from amazing_marvin_mcp.api import create_api_client
 
         api_client = create_api_client()
         result = get_productivity_summary(api_client)
@@ -268,8 +268,6 @@ class TestProjectPlanningEnhancements:
 
     def test_quick_daily_planning(self):
         """Test quick daily planning feature."""
-        from amazing_marvin_mcp.api import create_api_client
-        from amazing_marvin_mcp.tasks import quick_daily_planning
 
         api_client = create_api_client()
         result = quick_daily_planning(api_client)
@@ -282,8 +280,6 @@ class TestProjectPlanningEnhancements:
 
     def test_batch_create_tasks(self):
         """Test batch task creation."""
-        from amazing_marvin_mcp.api import create_api_client
-        from amazing_marvin_mcp.tasks import batch_create_tasks
 
         # Create test tasks
         api_client = create_api_client()

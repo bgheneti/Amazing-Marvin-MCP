@@ -5,8 +5,30 @@ from typing import Any
 
 from fastmcp import FastMCP
 
+from .analytics import (
+    get_completed_tasks as get_completed_tasks_impl,
+)
+from .analytics import (
+    get_daily_productivity_overview as get_daily_productivity_overview_impl,
+)
+from .analytics import (
+    get_productivity_summary_for_time_range as get_productivity_summary_for_time_range_impl,
+)
 from .api import create_api_client
+from .projects import (
+    create_project_with_tasks as create_project_impl,
+)
+from .projects import (
+    get_project_overview as get_project_overview_impl,
+)
 from .response_models import StandardResponse
+from .tasks import (
+    batch_create_tasks as batch_create_tasks_impl,
+)
+from .tasks import (
+    get_all_tasks_impl,
+    get_child_tasks_recursive,
+)
 from .tool_converter import (
     create_error_response,
     create_simple_response,
@@ -135,8 +157,6 @@ async def get_child_tasks(
     """
     start_time = time.time()
     try:
-        from .tasks import get_child_tasks_recursive
-
         api_client = create_api_client()
         if recursive:
             result = get_child_tasks_recursive(api_client, parent_id)
@@ -188,8 +208,6 @@ async def get_all_tasks(
     """
     start_time = time.time()
     try:
-        from .tasks import get_all_tasks_impl
-
         api_client = create_api_client()
         result = get_all_tasks_impl(api_client, label)
 
@@ -550,8 +568,6 @@ async def create_project_with_tasks(
     """Create a project with multiple tasks at once"""
     start_time = time.time()
     try:
-        from .projects import create_project_with_tasks as create_project_impl
-
         api_client = create_api_client()
         result = create_project_impl(
             api_client, project_title, task_titles, project_type
@@ -580,8 +596,6 @@ async def get_project_overview(
     """Get comprehensive overview of a project including tasks and progress"""
     start_time = time.time()
     try:
-        from .projects import get_project_overview as get_project_overview_impl
-
         api_client = create_api_client()
         result = get_project_overview_impl(api_client, project_id)
 
@@ -610,10 +624,6 @@ async def get_daily_productivity_overview(debug: bool = False) -> StandardRespon
     """
     start_time = time.time()
     try:
-        from .analytics import (
-            get_daily_productivity_overview as get_daily_productivity_overview_impl,
-        )
-
         api_client = create_api_client()
         result = get_daily_productivity_overview_impl(api_client)
 
@@ -642,8 +652,6 @@ async def batch_create_tasks(
     """Create multiple tasks at once with optional project/category assignment"""
     start_time = time.time()
     try:
-        from .tasks import batch_create_tasks as batch_create_tasks_impl
-
         api_client = create_api_client()
         result = batch_create_tasks_impl(api_client, task_list, project_id, category_id)
 
@@ -759,8 +767,6 @@ async def get_completed_tasks(debug: bool = False) -> StandardResponse:
     """
     start_time = time.time()
     try:
-        from .analytics import get_completed_tasks as get_completed_tasks_impl
-
         api_client = create_api_client()
         result = get_completed_tasks_impl(api_client)
 
@@ -799,10 +805,6 @@ async def get_productivity_summary_for_time_range(
     """
     start_time = time.time()
     try:
-        from .analytics import (
-            get_productivity_summary_for_time_range as get_productivity_summary_for_time_range_impl,
-        )
-
         api_client = create_api_client()
         result = get_productivity_summary_for_time_range_impl(
             api_client, days, start_date, end_date
@@ -881,6 +883,12 @@ async def get_completed_tasks_for_date(
 
 
 def start():
+    """Start the MCP server"""
+    mcp.run()
+
+
+if __name__ == "__main__":
+    start()
     """Start the MCP server"""
     mcp.run()
 
