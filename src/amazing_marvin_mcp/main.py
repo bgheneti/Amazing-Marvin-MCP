@@ -397,7 +397,7 @@ async def mark_task_done(
 
 
 @mcp.tool()
-async def test_api_connection(debug: bool = False) -> StandardResponse:
+async def test_api_connection(debug: bool = False) -> StandardResponse:  # noqa: PT028
     """Test the API connection and credentials.
 
     Use when troubleshooting connection issues or verifying API setup.
