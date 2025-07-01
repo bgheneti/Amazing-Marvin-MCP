@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/bgheneti-amazing-marvin-mcp-badge.png)](https://mseep.ai/app/bgheneti-amazing-marvin-mcp)
+
 # 🚀 Amazing Marvin AI Assistant Integration
 
 [![PyPI version](https://img.shields.io/pypi/v/amazing-marvin-mcp.svg)](https://pypi.org/project/amazing-marvin-mcp/)
