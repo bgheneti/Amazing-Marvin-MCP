@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from datetime import datetime
 from typing import Any
@@ -884,13 +885,16 @@ async def get_completed_tasks_for_date(
 
 def start():
     """Start the MCP server"""
-    mcp.run()
 
+    # Check if we should use HTTP transport (for Smithery deployment)
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
 
-if __name__ == "__main__":
-    start()
-    """Start the MCP server"""
-    mcp.run()
+    if transport.lower() == "http":
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        port = int(os.getenv("MCP_PORT", "8000"))
+        mcp.run(transport="http", host=host, port=port)
+    else:
+        mcp.run()  # Default STDIO transport
 
 
 if __name__ == "__main__":

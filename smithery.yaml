@@ -11,6 +11,9 @@ local:
   args: ["-m", "amazing_marvin_mcp"]
   environment_variables:
     - AMAZING_MARVIN_API_KEY
+    - MCP_TRANSPORT=http
+    - MCP_HOST=localhost
+    - MCP_PORT=8000
 
 # Remote/hosted configuration
 remote:
@@ -19,11 +22,16 @@ remote:
   entry_point: "amazing_marvin_mcp.main:start"
   environment_variables:
     - AMAZING_MARVIN_API_KEY
+    - MCP_TRANSPORT=http
+    - MCP_HOST=0.0.0.0
+    - MCP_PORT=8000
   dependencies_file: pyproject.toml
 
 # MCP Server configuration
 mcp:
-  transport: sse
+  transport: http
+  host: localhost
+  port: 8000
   capabilities:
     - resources
   resources:
