@@ -105,13 +105,13 @@ Once connected, your AI assistant becomes your personal productivity coach with 
 Run the pre-built Docker container from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/cyberkov/amazing-marvin-mcp:latest
+docker pull ghcr.io/bgheneti/amazing-marvin-mcp:latest
 ```
 
 **Usage:**
 ```bash
 docker run -e AMAZING_MARVIN_API_KEY="your-api-key-here" \
-  ghcr.io/cyberkov/amazing-marvin-mcp:latest
+  ghcr.io/bgheneti/amazing-marvin-mcp:latest
 ```
 
 **Why choose Docker:**
