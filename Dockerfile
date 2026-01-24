@@ -17,5 +17,13 @@ COPY README.md .
 # Install Python dependencies
 RUN pip install --no-cache-dir .
 
+# Set default environment variables for HTTP transport
+ENV MCP_TRANSPORT=http
+ENV MCP_HOST=0.0.0.0
+ENV MCP_PORT=8000
+
+# Expose the MCP port
+EXPOSE 8000
+
 # Set default entrypoint
 ENTRYPOINT ["amazing-marvin-mcp"]
