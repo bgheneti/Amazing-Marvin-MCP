@@ -29,6 +29,8 @@ class CleanTask:
     time_block_section: str | None = None
 
     # Reference primitives
+    parent_id: str | None = None
+    parent: Reference | None = None
     project: Reference | None = None
     category: Reference | None = None
     labels: list[Reference] | None = None
