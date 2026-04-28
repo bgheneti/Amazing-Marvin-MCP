@@ -41,14 +41,14 @@ This connects your [Amazing Marvin](https://amazingmarvin.com/) productivity sys
 ## ⚡ Quick Start (2 minutes)
 
 ### Step 1: Get your Amazing Marvin API key
-1. Open Amazing Marvin → Settings → API
+1. Open Amazing Marvin → Settings → API (navigating [here](https://app.amazingmarvin.com/pre?api) may be easier on mobile)
 2. Enable the API and copy your token
 3. Keep this handy! 🔑
 
 ### Step 2: Install
 **Easy way (Smithery):**
 ```bash
-npx -y @smithery/cli install @bgheneti/amazing-marvin-mcp --client claude
+npx -y @smithery/cli mcp add @bgheneti/amazing-marvin-mcp --client claude
 ```
 Paste the API key when prompted
 
