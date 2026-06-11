@@ -22,9 +22,11 @@ TASK_FIELD_MAPPING = {
     "isFrogged": "is_frogged",
     "timeEstimate": "time_estimate",
     "timeBlockSection": "time_block_section",
+    "parentId": "parent_id",
 }
 
 REFERENCE_MAPPINGS: dict[str, dict[str, Any]] = {
+    "parent": {"id_fields": ["parentId"], "lookup_source": "parents"},
     "project": {"id_fields": ["parentId", "parent_id"], "lookup_source": "projects"},
     "category": {
         "id_fields": ["categoryId", "category_id"],
@@ -63,16 +65,23 @@ def create_lookup_maps(api_client: MarvinAPIClient) -> dict[str, dict[str, str]]
             },
         }
 
+        # Combined map for parent resolution (parentId can point to project OR category)
+        lookup_maps["parents"] = {
+            **lookup_maps["categories"],
+            **lookup_maps["projects"],
+        }
+
         logger.debug(
-            "Created lookup maps: %d projects, %d categories, %d labels",
+            "Created lookup maps: %d projects, %d categories, %d labels, %d parents",
             len(lookup_maps["projects"]),
             len(lookup_maps["categories"]),
             len(lookup_maps["labels"]),
+            len(lookup_maps["parents"]),
         )
 
     except Exception:
         logger.exception("Failed to create lookup maps")
-        return {"projects": {}, "categories": {}, "labels": {}}
+        return {"projects": {}, "categories": {}, "labels": {}, "parents": {}}
     else:
         return lookup_maps
 
@@ -192,6 +201,8 @@ def create_clean_task(
         is_frogged=bool(clean_data.get("is_frogged", False)),
         time_estimate=clean_data.get("time_estimate"),
         time_block_section=clean_data.get("time_block_section"),
+        parent_id=clean_data.get("parent_id"),
+        parent=references.get("parent"),
         project=references.get("project"),
         category=references.get("category"),
         labels=references.get("labels"),
