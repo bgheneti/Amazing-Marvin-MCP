@@ -100,13 +100,38 @@ Once connected, your AI assistant becomes your personal productivity coach with 
 
 ## 📦 Installation
 
-### Option 1: Smithery (Easiest)
+### Option 1: Docker (Easiest for Production)
+
+Run the pre-built Docker container from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/bgheneti/amazing-marvin-mcp:latest
+```
+
+**Usage:**
+```bash
+docker run -e AMAZING_MARVIN_API_KEY="your-api-key-here" \
+  ghcr.io/bgheneti/amazing-marvin-mcp:latest
+```
+
+**Why choose Docker:**
+- ✅ No Python installation required
+- ✅ Consistent environment across systems
+- ✅ Multi-platform support (Intel/AMD and ARM processors including Apple Silicon)
+- ✅ Easy updates with `docker pull`
+
+**Available tags:**
+- `latest` - Most recent stable release
+- `1.0.1`, `1.0`, `1` - Specific version tags
+- `main` - Latest development build
+
+### Option 2: Smithery
 ```bash
 npx -y @smithery/cli install @bgheneti/amazing-marvin-mcp --client claude
 ```
 [Visit Smithery Registry](https://smithery.ai/server/@bgheneti/amazing-marvin-mcp) for other clients.
 
-### Option 2: Pip + Manual Config
+### Option 3: Pip + Manual Config
 
 **Why choose this option:**
 - ✅ Works with any MCP-compatible AI client
