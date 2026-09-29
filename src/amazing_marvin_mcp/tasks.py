@@ -5,9 +5,19 @@ import logging
 from datetime import datetime
 from typing import Any
 
+import requests
+
 from .api import MarvinAPIClient
+from .rate_limit import (
+    CREATE_INTERVAL_SECONDS,
+    DailyLimitExceededError,
+    RateLimiter,
+    default_rate_limiter,
+)
 
 logger = logging.getLogger(__name__)
+
+TOO_MANY_REQUESTS_STATUS = 429
 
 
 def get_daily_focus(api_client: MarvinAPIClient) -> dict[str, Any]:
@@ -56,12 +66,20 @@ def batch_create_tasks(
     task_list: list[Any],
     project_id: str | None = None,
     category_id: str | None = None,
+    rate_limiter: RateLimiter = default_rate_limiter,
 ) -> dict[str, Any]:
-    """Create multiple tasks at once with optional project/category assignment."""
-    created_tasks = []
-    failed_tasks = []
+    """Create multiple tasks at once with optional project/category assignment.
 
-    for task_info in task_list:
+    Creates are spaced at least 1 second apart and counted against Marvin's
+    daily request budget. If the budget runs out or Marvin answers 429, the
+    remaining tasks are returned as skipped instead of being attempted.
+    """
+    created_tasks: list[Any] = []
+    failed_tasks: list[dict[str, Any]] = []
+    skipped_tasks: list[Any] = []
+    stopped_reason = None
+
+    for index, task_info in enumerate(task_list):
         try:
             # Handle both string titles and dict objects
             if isinstance(task_info, str):
@@ -75,17 +93,35 @@ def batch_create_tasks(
             if category_id and "categoryId" not in task_data:
                 task_data["categoryId"] = category_id
 
+            rate_limiter.acquire(CREATE_INTERVAL_SECONDS)
             created_task = api_client.create_task(task_data)
             created_tasks.append(created_task)
+        except DailyLimitExceededError as e:
+            stopped_reason = str(e)
+            skipped_tasks = list(task_list[index:])
+            break
+        except requests.exceptions.HTTPError as e:
+            failed_tasks.append({"task": task_info, "error": str(e)})
+            if (
+                e.response is not None
+                and e.response.status_code == TOO_MANY_REQUESTS_STATUS
+            ):
+                stopped_reason = "Marvin API rate limit reached (HTTP 429)"
+                skipped_tasks = list(task_list[index + 1 :])
+                break
         except Exception as e:
             failed_tasks.append({"task": task_info, "error": str(e)})
 
     return {
         "created_tasks": created_tasks,
         "failed_tasks": failed_tasks,
+        "skipped_tasks": skipped_tasks,
         "success_count": len(created_tasks),
         "failure_count": len(failed_tasks),
+        "skipped_count": len(skipped_tasks),
         "total_requested": len(task_list),
+        "stopped_reason": stopped_reason,
+        "daily_budget_remaining": rate_limiter.remaining_today,
     }
 
 

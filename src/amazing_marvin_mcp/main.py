@@ -23,6 +23,7 @@ from .projects import (
     get_project_overview as get_project_overview_impl,
 )
 from .response_models import StandardResponse
+from .subtasks import update_subtasks as update_subtasks_impl
 from .tasks import (
     batch_create_tasks as batch_create_tasks_impl,
 )
@@ -650,23 +651,89 @@ async def batch_create_tasks(
     category_id: str | None = None,
     debug: bool = False,
 ) -> StandardResponse:
-    """Create multiple tasks at once with optional project/category assignment"""
+    """Create multiple tasks at once with optional project/category assignment.
+
+    Creates are paced at 1 per second (Marvin's documented limit), so a batch of
+    N tasks takes about N seconds. Stops early when the daily request budget
+    (1440) is used up or Marvin returns HTTP 429; unattempted tasks are listed
+    in skipped_tasks so they can be retried later.
+    """
     start_time = time.time()
     try:
         api_client = create_api_client()
         result = batch_create_tasks_impl(api_client, task_list, project_id, category_id)
 
+        summary = (
+            f"Created {result['success_count']} of {len(task_list)} tasks in batch"
+        )
+        if result["skipped_count"]:
+            summary += (
+                f"; skipped {result['skipped_count']} ({result['stopped_reason']})"
+            )
         return create_simple_response(
             data=result,
-            summary_text=f"Created {result.get('success_count', 0)} tasks in batch",
+            summary_text=summary,
             api_endpoint="/addTask",
-            api_calls_made=len(task_list),
+            api_calls_made=result["success_count"] + result["failure_count"],
             debug=debug,
             start_time=start_time,
         )
     except Exception as e:
         logger.exception("Failed to batch create tasks")
         return create_error_response(e, "/addTask", debug, start_time)
+
+
+@mcp.tool()
+async def update_subtasks(
+    task_id: str,
+    *,
+    set_subtasks: list[str | dict[str, Any]] | None = None,
+    add: list[str | dict[str, Any]] | None = None,
+    tick: list[str] | None = None,
+    untick: list[str] | None = None,
+    debug: bool = False,
+) -> StandardResponse:
+    """Set, add, tick or untick checklist subtasks on a task.
+
+    Requires AMAZING_MARVIN_FULL_ACCESS_TOKEN (uses /doc and /doc/update).
+
+    Args:
+        task_id: ID of the task whose subtasks to change
+        set_subtasks: Replace all subtasks. Each item is a title or
+            {"title": str, "done": bool, "timeEstimate": ms}
+        add: Append subtasks, same item shape as set_subtasks
+        tick: Subtask IDs or exact titles to mark done
+        untick: Subtask IDs or exact titles to mark not done
+
+    The new subtasks are validated before sending, and the task is re-read
+    afterwards so the returned subtasks are what Marvin actually stored.
+    """
+    start_time = time.time()
+    try:
+        api_client = create_api_client()
+        result = update_subtasks_impl(
+            api_client,
+            task_id,
+            set_subtasks=set_subtasks,
+            add=add,
+            tick=tick,
+            untick=untick,
+        )
+
+        return create_simple_response(
+            data=result,
+            summary_text=(
+                f"Task {task_id} now has {result['subtask_count']} subtasks "
+                f"({result['done_count']} done)"
+            ),
+            api_endpoint="/doc/update",
+            api_calls_made=3,
+            debug=debug,
+            start_time=start_time,
+        )
+    except Exception as e:
+        logger.exception("Failed to update subtasks for task %s", task_id)
+        return create_error_response(e, "/doc/update", debug, start_time)
 
 
 @mcp.tool()

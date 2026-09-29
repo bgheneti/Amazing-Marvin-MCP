@@ -407,6 +407,8 @@ export AMAZING_MARVIN_API_KEY="your-api-key-here"
 AMAZING_MARVIN_API_KEY=your-api-key-here
 ```
 
+**Optional: full access token.** `update_subtasks` reads and updates task documents, which needs Marvin's full access token (shown next to the API token in Marvin's API strategy settings). Set `AMAZING_MARVIN_FULL_ACCESS_TOKEN` the same way as the API key. All other tools work without it.
+
 ### 🧪 Testing
 ```bash
 pytest tests/ -v
@@ -427,7 +429,7 @@ pytest tests/        # Tests
 ```
 
 ### 🔄 Available Tools
-The MCP provides 28 comprehensive tools to AI assistants:
+The MCP provides 29 comprehensive tools to AI assistants:
 
 **📖 Read Operations:**
 - `get_daily_productivity_overview()` - **PRIMARY** comprehensive daily view (today's tasks, overdue, completed, planning insights)
@@ -485,7 +487,14 @@ The MCP provides 28 comprehensive tools to AI assistants:
     task_list: list[str],
     project_id: str = None,
     category_id: str = None
-  )` - Create multiple tasks
+  )` - Create multiple tasks, paced at 1 per second; stops at the daily request budget or on HTTP 429 and returns the skipped tasks
+- `update_subtasks(
+    task_id: str,
+    set_subtasks: list = None,
+    add: list = None,
+    tick: list[str] = None,
+    untick: list[str] = None
+  )` - Set, add, tick or untick checklist subtasks (requires `AMAZING_MARVIN_FULL_ACCESS_TOKEN`)
 - `claim_reward_points(
     points: int,
     item_id: str,
@@ -571,6 +580,7 @@ You can also manually publish to Test PyPI by running the workflow manually on G
 - Historical data is cached briefly to avoid repeated requests
 - Response time depends on your internet connection to Amazing Marvin
 - Very frequent requests might occasionally hit rate limits (just wait a moment)
+- `batch_create_tasks` and `update_subtasks` follow [Marvin's documented rate limits](https://github.com/amazingmarvin/MarvinAPI/wiki#rate-limits): at most 1 created item per second, reads spaced 3 seconds apart, and a 1440-request daily budget. The budget is counted in memory per server process, so restarting the server resets it.
 
 **Technical details:**
 - Data is fetched in real-time for accuracy

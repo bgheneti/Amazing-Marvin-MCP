@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import requests
 
@@ -11,39 +12,58 @@ logger = logging.getLogger(__name__)
 def create_api_client() -> "MarvinAPIClient":
     """Create API client with settings."""
     settings = get_settings()
-    return MarvinAPIClient(api_key=settings.amazing_marvin_api_key)
+    return MarvinAPIClient(
+        api_key=settings.amazing_marvin_api_key,
+        full_access_token=settings.amazing_marvin_full_access_token,
+    )
 
 
 class MarvinAPIClient:
     """API client for Amazing Marvin"""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, full_access_token: str | None = None):
         """
         Initialize the API client with the API key
 
         Args:
             api_key: Amazing Marvin API key
+            full_access_token: Optional full access token, required only for
+                document read/update endpoints (/doc, /doc/update)
         """
         self.api_key = api_key
+        self.full_access_token = full_access_token
         self.base_url = "https://serv.amazingmarvin.com/api"  # Removed v1 from URL
         self.headers = {"X-API-Token": api_key}
 
+    def _full_access_headers(self) -> dict[str, str]:
+        """Headers for endpoints that require the full access token."""
+        if not self.full_access_token:
+            raise ValueError(
+                "This operation requires AMAZING_MARVIN_FULL_ACCESS_TOKEN to be set"
+            )
+        return {"X-Full-Access-Token": self.full_access_token}
+
     def _make_request(
-        self, method: str, endpoint: str, data: dict | None = None
+        self,
+        method: str,
+        endpoint: str,
+        data: dict | None = None,
+        full_access: bool = False,
     ) -> Any:
         """Make a request to the API"""
         url = f"{self.base_url}{endpoint}"
+        headers = self._full_access_headers() if full_access else self.headers
         logger.debug("Making %s request to %s", method, url)
 
         try:
             if method.lower() == "get":
-                response = requests.get(url, headers=self.headers)
+                response = requests.get(url, headers=headers)
             elif method.lower() == "post":
-                response = requests.post(url, headers=self.headers, json=data)
+                response = requests.post(url, headers=headers, json=data)
             elif method.lower() == "put":
-                response = requests.put(url, headers=self.headers, json=data)
+                response = requests.put(url, headers=headers, json=data)
             elif method.lower() == "delete":
-                response = requests.delete(url, headers=self.headers)
+                response = requests.delete(url, headers=headers)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -220,6 +240,25 @@ class MarvinAPIClient:
     def create_project(self, project_data: dict) -> dict:
         """Create a new project (experimental endpoint)"""
         return self._make_request("post", "/addProject", data=project_data)
+
+    def get_document(self, doc_id: str) -> dict:
+        """Read any document by ID (requires full access token, uses /doc)"""
+        return self._make_request(
+            "get", f"/doc?id={quote(doc_id, safe='')}", full_access=True
+        )
+
+    def update_document(self, item_id: str, setters: list[dict[str, Any]]) -> dict:
+        """Apply setters to a document (requires full access token, uses /doc/update)
+
+        Experimental Marvin endpoint: a wrongly shaped value can crash the
+        Marvin app, so callers must validate values before sending them.
+        """
+        return self._make_request(
+            "post",
+            "/doc/update",
+            data={"itemId": item_id, "setters": setters},
+            full_access=True,
+        )
 
     def update_task(self, task_id: str, task_data: dict) -> dict:
         """Update a task (requires full access token and /api/doc/update)"""
