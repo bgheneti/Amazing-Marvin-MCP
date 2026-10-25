@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Compatible-brightgreen.svg)](https://modelcontextprotocol.io/)
-[![smithery badge](https://smithery.ai/badge/@bgheneti/amazing-marvin-mcp)](https://smithery.ai/server/@bgheneti/amazing-marvin-mcp)
+[![LightNow capabilities](https://lightnow.ai/badge/io.github.bgheneti/amazing-marvin-mcp)](https://lightnow.ai/servers/io.github.bgheneti/amazing-marvin-mcp)
 
 > Connect your Amazing Marvin productivity system with AI assistants for smarter task management
 
